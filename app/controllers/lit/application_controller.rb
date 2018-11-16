@@ -1,19 +1,29 @@
 module Lit
   class ApplicationController < ActionController::Base
+    include Lit::RequestLitVersionCheck
+    include Pundit
+
     unless respond_to?(:before_action)
       alias_method :before_action, :before_filter
       alias_method :after_action, :after_filter
     end
     before_action :authenticate
     before_action :stop_hits_counter
+    before_action :check_lit_version_keys_and_refresh
     after_action :restore_hits_counter
 
     private
 
-    def authenticate
-      return unless Lit.authentication_function.present?
+    def current_user
+      @current_user ||= Admin::SessionManager.current_user(session)
+    end
+    helper_method :current_user
 
-      send(Lit.authentication_function)
+    def authenticate
+      if current_user.blank? || !policy(:translation).index?
+        redirect_to "/admin/login?return_to=#{URI.parse(request.path).path}"
+        return false
+      end
     end
 
     def stop_hits_counter

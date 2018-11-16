@@ -32,6 +32,15 @@ module Lit
       o.before_update :create_version
     end
     after_update :mark_localization_key_completed
+    after_commit :update_redis_version
+
+    def translated_value
+      read_attribute(:translated_value) || default_value
+    end
+
+    def update_redis_version
+      LIT_REDIS_VERSION.increment
+    end
 
     def to_s
       get_value
